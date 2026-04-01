@@ -1,0 +1,80 @@
+digraph Architecture {
+    // Dark background and general graph settings
+    bgcolor="#0d1117";
+    fontname="Helvetica,Arial,sans-serif";
+    fontsize=14;
+    rankdir=LR;
+    nodesep=0.8;
+    ranksep=1.2;
+
+    // Default node style (Neon theme)
+    node [
+        shape=box,
+        style="rounded,filled",
+        fillcolor="#161b22",
+        color="#39d353", // Neon green border
+        fontcolor="#c9d1d9",
+        fontname="Helvetica,Arial,sans-serif",
+        penwidth=2,
+        margin="0.2,0.1"
+    ];
+
+    // Default edge style
+    edge [
+        color="#58a6ff", // Neon blue lines
+        fontcolor="#79c0ff",
+        fontname="Helvetica,Arial,sans-serif",
+        fontsize=10,
+        penwidth=1.5,
+        arrowsize=0.8
+    ];
+
+    // ─── Subgraphs for logical grouping ───
+
+    subgraph cluster_user {
+        label="User Interface";
+        fontcolor="#ff7b72"; // Neon purple/pink label
+        color="#238636";
+        style="dashed";
+        
+        Terminal [label="Terminal (ZSH) \n /model command", color="#d2a8ff"];
+    }
+
+    subgraph cluster_hermes {
+        label="Hermes Agent CLI";
+        fontcolor="#ff7b72";
+        color="#238636";
+        style="dashed";
+
+        ModelSwitch [label="model_switch.py \n (Custom Provider Shim)"];
+        TerminalMenu [label="Interactive Menu \n (simple_term_menu)"];
+        ConfigYAML [label="config.yaml \n (model: \"\")", shape=cylinder, color="#f0883e"];
+    }
+
+    subgraph cluster_ollama {
+        label="Local Hardware";
+        fontcolor="#ff7b72";
+        color="#238636";
+        style="dashed";
+
+        OllamaServer [label="Ollama API \n (localhost:11434/v1)", color="#a5d6ff"];
+        GPU [label="NVIDIA RTX 3080/3060 \n (Local Inference)", shape=component, color="#ff7b72"];
+    }
+
+    // ─── Connections ───
+    Terminal -> ModelSwitch [label="Invokes /model"];
+    ModelSwitch -> ConfigYAML [label="Reads Custom Providers"];
+    ConfigYAML -> ModelSwitch [label="Returns 'Local Ollama' \n (Empty Model Field)"];
+    
+    ModelSwitch -> OllamaServer [label="HTTP GET /models \n (Probes Catalog)"];
+    OllamaServer -> ModelSwitch [label="JSON Array of 27+ Models"];
+    
+    ModelSwitch -> TerminalMenu [label="Populates Choices"];
+    TerminalMenu -> Terminal [label="Renders UI"];
+    
+    Terminal -> TerminalMenu [label="User Selects Model \n (e.g. qwen2.5-coder:14b)"];
+    TerminalMenu -> OllamaServer [label="POST /chat/completions"];
+    OllamaServer -> GPU [label="Executes Inference"];
+    GPU -> OllamaServer [label="Returns Tokens"];
+    OllamaServer -> Terminal [label="Streams Output", style="dotted", color="#39d353"];
+}
